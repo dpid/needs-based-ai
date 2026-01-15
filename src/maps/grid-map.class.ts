@@ -102,10 +102,14 @@ export class GridMapImpl implements Map {
     const result: MapElement[] = [];
     const radiusSquared = radius * radius;
 
-    for (const element of this.elementToHash.keys()) {
-      const dist = vector2Distance(centerCell, element.location);
-      if (dist * dist <= radiusSquared) {
-        result.push(element);
+    const cells = this.getCellsInsideRadius(centerCell, radius);
+    for (const cell of cells) {
+      const elements = this.getElementsAtCell(cell);
+      for (const element of elements) {
+        const dist = vector2Distance(centerCell, element.location);
+        if (dist * dist <= radiusSquared) {
+          result.push(element);
+        }
       }
     }
 
