@@ -1,6 +1,6 @@
 # @dpid/needs-based-ai
 
-Needs-based AI simulation for TypeScript. Agents have stats and desires; items broadcast traits via advertisements. Ported from a C# Unity implementation.
+Needs-based AI simulation for TypeScript. Agents have stats and desires; items broadcast traits via advertisements.
 
 ## Installation
 
