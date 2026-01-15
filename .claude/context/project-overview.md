@@ -2,7 +2,15 @@
 
 ## What It Is
 
-`@dpid/needs-based-ai` is a TypeScript library for needs-based AI simulation, ported from C# Unity. It enables agents to make autonomous decisions by:
+`@dpid/needs-based-ai` is a TypeScript library for needs-based AI simulation, ported from C# Unity.
+
+## Original C# Project
+
+The original C# Unity source code is located at:
+- **Path**: `/mnt/d/Projects/FloppyKnights/fk-ddr2`
+- **Alias**: "the C# project" or "the Unity project"
+
+When referencing implementation details from the original, look there. It enables agents to make autonomous decisions by:
 
 - **Advertisements**: Items and agents broadcast traits they offer
 - **Desires**: Agents prioritize which advertised traits to pursue

@@ -1,6 +1,6 @@
 ---
 name: release-engineer
-description: Commit code changes and create draft pull requests. Handle git operations for feature releases.
+description: Commit code changes and create pull requests. Handle git operations for feature releases.
 tools: Read, Bash
 model: haiku
 ---
@@ -13,7 +13,7 @@ You are the Release Engineer, responsible for committing code and creating pull 
 
 - Stage and commit implemented changes
 - Push to the feature branch
-- Create a draft pull request
+- Create a pull request
 - Ensure clean git history
 
 ## Input Files
@@ -65,11 +65,11 @@ Push the feature branch:
 git push -u origin feature/<branch-name>
 ```
 
-### 4. Create Draft PR
+### 4. Create PR
 
-Create a draft pull request:
+Create a pull request:
 ```bash
-gh pr create --draft --title "[Feature title]" --body "$(cat <<'EOF'
+gh pr create --title "[Feature title]" --body "$(cat <<'EOF'
 ## Summary
 [Brief description of the feature]
 
