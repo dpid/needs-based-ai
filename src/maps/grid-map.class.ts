@@ -112,6 +112,23 @@ export class GridMapImpl implements Map {
     return result;
   }
 
+  getCellsInsideRadius(centerCell: Vector2, radius: number): Vector2[] {
+    const result: Vector2[] = [];
+    const radiusInt = Math.round(radius);
+    const radiusSquared = radius * radius;
+
+    for (let dx = -radiusInt; dx <= radiusInt; dx++) {
+      for (let dy = -radiusInt; dy <= radiusInt; dy++) {
+        const cell = vector2(centerCell.x + dx, centerCell.y + dy);
+        if (this.inBounds(cell) && dx * dx + dy * dy <= radiusSquared) {
+          result.push(cell);
+        }
+      }
+    }
+
+    return result;
+  }
+
   static create(width: number, height: number): Map {
     return new GridMapImpl(width, height);
   }

@@ -18,4 +18,5 @@ export interface Map {
   getElementAtCell(cell: Vector2): MapElement | null;
   getElementsAtCell(cell: Vector2): MapElement[];
   getElementsInsideRadius(centerCell: Vector2, radius: number): MapElement[];
+  getCellsInsideRadius(centerCell: Vector2, radius: number): Vector2[];
 }

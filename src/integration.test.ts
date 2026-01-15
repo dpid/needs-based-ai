@@ -1,10 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { CommandableState, StateMachine } from '@dpid/command-state-machine';
 import { vector2, resetIdGenerator } from './common';
 import { Trait, TraitCollection } from './traits';
 import { GridMap } from './maps';
-import { Advertisement, AdvertisementBroadcaster } from './advertisements';
+import {
+  Advertisement,
+  AdvertisementBroadcaster,
+  AdvertisementType,
+} from './advertisements';
 import { Item, ItemData } from './items';
 import { Agent, AgentData } from './agents';
+import { BroadcastStats } from './commands';
 
 describe('Integration Tests', () => {
   beforeEach(() => {
@@ -30,9 +36,9 @@ describe('Integration Tests', () => {
       agent.addToMap(map);
       broadcaster.addReceiver(agent);
 
-      const receivedAds: typeof Advertisement[] = [];
+      const receivedAds: AdvertisementType[] = [];
       agent.onAdvertisementReceived.addListener((ad) => {
-        receivedAds.push(ad as typeof Advertisement);
+        receivedAds.push(ad as AdvertisementType);
       });
 
       const ad = Advertisement.create(
@@ -61,9 +67,9 @@ describe('Integration Tests', () => {
       agent.addToMap(map);
       broadcaster.addReceiver(agent);
 
-      const receivedAds: typeof Advertisement[] = [];
+      const receivedAds: AdvertisementType[] = [];
       agent.onAdvertisementReceived.addListener((ad) => {
-        receivedAds.push(ad as typeof Advertisement);
+        receivedAds.push(ad as AdvertisementType);
       });
 
       const ad = Advertisement.create(
@@ -141,6 +147,163 @@ describe('Integration Tests', () => {
 
       expect(map.getElementsAtCell(vector2(0, 0)).length).toBe(0);
       expect(map.getElementsAtCell(vector2(5, 5)).length).toBe(1);
+    });
+  });
+
+  describe('BroadcastStats command', () => {
+    it('should broadcast item stats on start', () => {
+      const map = GridMap.create(20, 20);
+      const broadcaster = AdvertisementBroadcaster.create();
+
+      const item = Item.create('items', vector2(0, 0));
+      const itemData = ItemData.create('Food', 5, 1);
+      itemData.stats.addTrait(Trait.create('food', 100));
+      item.data = itemData;
+      item.broadcaster = broadcaster;
+      item.addToMap(map);
+
+      const agent = Agent.create('agents', vector2(2, 2));
+      agent.addToMap(map);
+      broadcaster.addReceiver(agent);
+
+      const receivedAds: AdvertisementType[] = [];
+      agent.onAdvertisementReceived.addListener((ad) => {
+        receivedAds.push(ad as AdvertisementType);
+      });
+
+      const sm = StateMachine.create();
+      const state = CommandableState.create('broadcast');
+      state.addCommand(BroadcastStats.create(item));
+      sm.addState(state);
+      sm.setState('broadcast');
+
+      expect(receivedAds.length).toBe(1);
+      expect(receivedAds[0].traits[0].id).toBe('food');
+    });
+
+    it('should broadcast on interval', () => {
+      const map = GridMap.create(20, 20);
+      const broadcaster = AdvertisementBroadcaster.create();
+
+      const item = Item.create('items', vector2(0, 0));
+      const itemData = ItemData.create('Food', 5, 2);
+      itemData.stats.addTrait(Trait.create('food', 100));
+      item.data = itemData;
+      item.broadcaster = broadcaster;
+      item.addToMap(map);
+
+      const agent = Agent.create('agents', vector2(2, 2));
+      agent.addToMap(map);
+      broadcaster.addReceiver(agent);
+
+      const receivedAds: AdvertisementType[] = [];
+      agent.onAdvertisementReceived.addListener((ad) => {
+        receivedAds.push(ad as AdvertisementType);
+      });
+
+      const sm = StateMachine.create();
+      const state = CommandableState.create('broadcast');
+      state.addCommand(BroadcastStats.create(item));
+      sm.addState(state);
+      sm.setState('broadcast');
+
+      expect(receivedAds.length).toBe(1);
+
+      sm.update(1);
+      expect(receivedAds.length).toBe(1);
+
+      sm.update(1);
+      expect(receivedAds.length).toBe(2);
+
+      sm.update(2);
+      expect(receivedAds.length).toBe(3);
+    });
+
+    it('should not broadcast to agents outside radius', () => {
+      const map = GridMap.create(20, 20);
+      const broadcaster = AdvertisementBroadcaster.create();
+
+      const item = Item.create('items', vector2(0, 0));
+      const itemData = ItemData.create('Food', 3, 1);
+      itemData.stats.addTrait(Trait.create('food', 100));
+      item.data = itemData;
+      item.broadcaster = broadcaster;
+      item.addToMap(map);
+
+      const agent = Agent.create('agents', vector2(5, 5));
+      agent.addToMap(map);
+      broadcaster.addReceiver(agent);
+
+      const receivedAds: AdvertisementType[] = [];
+      agent.onAdvertisementReceived.addListener((ad) => {
+        receivedAds.push(ad as AdvertisementType);
+      });
+
+      const sm = StateMachine.create();
+      const state = CommandableState.create('broadcast');
+      state.addCommand(BroadcastStats.create(item));
+      sm.addState(state);
+      sm.setState('broadcast');
+
+      expect(receivedAds.length).toBe(0);
+    });
+
+    it('should exclude specified receiver for agents', () => {
+      const map = GridMap.create(20, 20);
+      const broadcaster = AdvertisementBroadcaster.create();
+
+      const broadcastingAgent = Agent.create('agents', vector2(0, 0));
+      const agentData = AgentData.create('Broadcaster', 5, 1);
+      agentData.stats.addTrait(Trait.create('gold', 50));
+      broadcastingAgent.data = agentData;
+      broadcastingAgent.broadcaster = broadcaster;
+      broadcastingAgent.addToMap(map);
+      broadcaster.addReceiver(broadcastingAgent);
+
+      const otherAgent = Agent.create('agents', vector2(2, 2));
+      otherAgent.addToMap(map);
+      broadcaster.addReceiver(otherAgent);
+
+      const selfAds: AdvertisementType[] = [];
+      broadcastingAgent.onAdvertisementReceived.addListener((ad) => {
+        selfAds.push(ad as AdvertisementType);
+      });
+
+      const otherAds: AdvertisementType[] = [];
+      otherAgent.onAdvertisementReceived.addListener((ad) => {
+        otherAds.push(ad as AdvertisementType);
+      });
+
+      const sm = StateMachine.create();
+      const state = CommandableState.create('broadcast');
+      state.addCommand(BroadcastStats.create(broadcastingAgent, broadcastingAgent));
+      sm.addState(state);
+      sm.setState('broadcast');
+
+      expect(selfAds.length).toBe(0);
+      expect(otherAds.length).toBe(1);
+    });
+  });
+
+  describe('getCellsInsideRadius', () => {
+    it('should return cells within radius', () => {
+      const map = GridMap.create(20, 20);
+      const cells = map.getCellsInsideRadius(vector2(0, 0), 2);
+
+      expect(cells.length).toBeGreaterThan(0);
+      expect(cells.some((c) => c.x === 0 && c.y === 0)).toBe(true);
+      expect(cells.some((c) => c.x === 1 && c.y === 1)).toBe(true);
+      expect(cells.some((c) => c.x === 2 && c.y === 0)).toBe(true);
+      expect(cells.every((c) => c.x * c.x + c.y * c.y <= 4)).toBe(true);
+    });
+
+    it('should respect map bounds', () => {
+      const map = GridMap.create(4, 4);
+      const cells = map.getCellsInsideRadius(vector2(0, 0), 5);
+
+      cells.forEach((cell) => {
+        expect(map.inBounds(cell)).toBe(true);
+      });
     });
   });
 });

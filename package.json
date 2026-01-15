@@ -23,10 +23,10 @@
     "test:watch": "vitest"
   },
   "peerDependencies": {
-    "@dpid/command-state-machine": "^1.0.0"
+    "@dpid/command-state-machine": "^1.1.0"
   },
   "devDependencies": {
-    "@dpid/command-state-machine": "^1.0.0",
+    "@dpid/command-state-machine": "^1.1.0",
     "tsup": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",

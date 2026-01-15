@@ -13,12 +13,15 @@ npm install @dpid/needs-based-ai
 ## Quick Start
 
 ```typescript
-import { GridMap, Item, ItemData, Agent, AgentData, Trait, Advertisement, AdvertisementBroadcaster, vector2 } from '@dpid/needs-based-ai';
+import { GridMap, Item, ItemData, Agent, AgentData, Trait, AdvertisementBroadcaster, BroadcastStats, vector2 } from '@dpid/needs-based-ai';
+import { CommandableState, StateMachine } from '@dpid/command-state-machine';
 
 // Create a map
 const map = GridMap.create(20, 20);
 
 // Create an item that broadcasts food
+// broadcastDistance=5 means it broadcasts to cells within 5 units
+// broadcastInterval=1 means it broadcasts every 1 second
 const item = Item.create('food-sources', vector2(0, 0));
 const itemData = ItemData.create('Apple Tree', 5, 1);
 itemData.stats.addTrait(Trait.create('food', 100));
@@ -26,7 +29,7 @@ item.data = itemData;
 item.addToMap(map);
 
 // Create an agent that desires food
-const agent = Agent.create('creatures', vector2(5, 5));
+const agent = Agent.create('creatures', vector2(3, 3));
 const agentData = AgentData.create('Hungry Creature', 10, 1);
 agentData.desires.addTrait(Trait.create('food', 50));
 agent.data = agentData;
@@ -42,15 +45,16 @@ agent.onAdvertisementReceived.addListener((ad) => {
   console.log('Received ad for:', ad.traits.map(t => t.id).join(', '));
 });
 
-// Broadcast!
-const ad = Advertisement.create(
-  [Trait.create('food', 100)],
-  map,
-  item.location,
-  [vector2(5, 5)], // broadcast to agent's location
-  'food-sources'
-);
-broadcaster.broadcast(ad);
+// Set up automatic broadcasting with state machine
+const sm = StateMachine.create();
+const broadcastState = CommandableState.create('broadcasting');
+broadcastState.addCommand(BroadcastStats.create(item));
+sm.addState(broadcastState);
+sm.setState('broadcasting');
+
+// In your game loop, call update with delta time
+// This will automatically broadcast the item's stats at the configured interval
+sm.update(1); // 1 second - triggers broadcast
 ```
 
 ## Core Concepts

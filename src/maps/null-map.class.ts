@@ -41,6 +41,10 @@ export class NullMap implements Map {
     return [];
   }
 
+  getCellsInsideRadius(_centerCell: Vector2, _radius: number): Vector2[] {
+    return [];
+  }
+
   static create(): Map {
     return new NullMap();
   }

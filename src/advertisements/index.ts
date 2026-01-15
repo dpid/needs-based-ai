@@ -15,3 +15,7 @@ export {
 export { NullAdvertisementBroadcaster } from './null-advertisement-broadcaster.class';
 
 export type { Advertiser } from './advertiser.interface';
+export type {
+  AdvertisingMapElement,
+  AdvertisingData,
+} from './advertising-map-element.interface';
