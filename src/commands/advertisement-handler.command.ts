@@ -3,6 +3,7 @@ import type { AgentType as Agent } from '../agents';
 import type { AdvertisementType as Advertisement } from '../advertisements';
 import { RankedAdvertisement } from '../advertisements';
 import { vector2Distance } from '../common';
+import { Debug } from '../debug';
 
 export class AdvertisementHandler extends AbstractCommand {
   private readonly handleAdvertisement: (ad: Advertisement) => void;
@@ -34,6 +35,38 @@ export class AdvertisementHandler extends AbstractCommand {
 
   private onAdvertisementReceived(advertisement: Advertisement): void {
     const rank = this.calculateRank(advertisement);
+
+    if (Debug.isEnabled) {
+      const firstTrait = advertisement.traits[0];
+      const consideredOption = {
+        id: `${advertisement.location.x},${advertisement.location.y}`,
+        trait: firstTrait?.id || 'unknown',
+        position: { x: advertisement.location.x, y: advertisement.location.y },
+        score: rank,
+        rejectionReason: undefined as string | undefined,
+      };
+
+      if (rank <= 0) {
+        consideredOption.rejectionReason = 'No matching desires or same group';
+      } else if (!this.isRankGreaterThanCurrentTarget(rank)) {
+        consideredOption.rejectionReason = 'Lower rank than current target';
+      }
+
+      const wasAccepted = rank > 0 && this.isRankGreaterThanCurrentTarget(rank);
+
+      if (wasAccepted) {
+        this.agent.lastDecision = {
+          selectedTarget: {
+            id: `${advertisement.location.x},${advertisement.location.y}`,
+            trait: firstTrait?.id || 'unknown',
+            position: { x: advertisement.location.x, y: advertisement.location.y },
+          },
+          reason: `Rank ${rank} exceeds current target rank`,
+          consideredOptions: [consideredOption],
+          timestamp: Date.now(),
+        };
+      }
+    }
 
     if (rank <= 0) return;
 

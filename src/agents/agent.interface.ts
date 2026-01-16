@@ -8,6 +8,7 @@ import type {
   RankedAdvertisementType as RankedAdvertisement,
 } from '../advertisements';
 import type { AgentData } from './agent-data.interface';
+import type { AgentDebugInfo, DecisionDebugInfo } from '../debug';
 
 export interface Agent
   extends MapElement,
@@ -19,4 +20,7 @@ export interface Agent
   targetAdvertisement: RankedAdvertisement | null;
   targetMapElement: MapElement | null;
   targetLocation: Vector2 | null;
+  readonly receivedAdvertisements: readonly Advertisement[];
+  lastDecision: DecisionDebugInfo | null;
+  getDebugInfo(): AgentDebugInfo | null;
 }
