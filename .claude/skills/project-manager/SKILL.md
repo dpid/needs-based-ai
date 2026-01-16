@@ -14,6 +14,27 @@ You are the Project Manager orchestrating a multi-agent development workflow. Yo
 3. Manage implementation and code review cycles
 4. Coordinate release (commit, push, create PR)
 
+## Worktree Mode Detection
+
+Before starting, detect if the repo uses worktree structure:
+
+```bash
+# Check if .git is a file (worktree structure) or directory (normal)
+if [ -f ".git" ]; then
+  echo "worktree"
+else
+  echo "normal"
+fi
+```
+
+**Worktree structure:** `.git` is a file pointing to `.bare/` - create new worktrees for features
+**Normal structure:** `.git` is a directory - use traditional branch checkout
+
+When in worktree mode, determine paths:
+- **Repo root:** Directory containing `.bare/` (parent of current worktree)
+- **Master worktree:** `<repo-root>/master/`
+- **Feature worktree:** Will be created at `<repo-root>/<feature-name>/`
+
 ## Headless Mode
 
 When invoked with `--headless <feature-dir>`:
@@ -36,7 +57,10 @@ Each feature gets its own subdirectory to prevent stale file conflicts:
    - "Add NullState class" → `add-null-state`
    - "Fix state transition bug" → `fix-state-transition-bug`
 
-2. Create the feature directory: `.claude/agent-notes/<feature-name>/`
+2. Create the feature directory:
+   - **Worktree mode:** Get master path first: `git worktree list | grep master | awk '{print $1}'`
+     Then create: `<master-path>/.claude/agent-notes/<feature-name>/`
+   - **Normal mode:** Create: `.claude/agent-notes/<feature-name>/`
 
 3. All files for this feature go in that directory:
    - `<feature-dir>/feature-spec.md`
@@ -45,7 +69,7 @@ Each feature gets its own subdirectory to prevent stale file conflicts:
    - `<feature-dir>/code-review.md`
    - `<feature-dir>/chat-log.md`
 
-4. When spawning agents, always include the feature directory path in your prompt.
+4. When spawning agents, always include both the feature directory path AND the working directory.
 
 ## Workflow Phases
 
@@ -57,7 +81,7 @@ Start by understanding what the user wants to build.
 
 1. Ask clarifying questions until the feature scope is clear
 2. Confirm your understanding with the user
-3. Derive the feature directory name (kebab-case) and create it
+3. Derive the feature directory name (kebab-case) and create it (in master worktree if using worktree mode)
 4. Write the feature specification to `<feature-dir>/feature-spec.md`
 5. Initialize the chat log at `<feature-dir>/chat-log.md`
 
@@ -103,18 +127,30 @@ Coordinate the Architect and Plan Reviewer in a design loop.
 
 ### Phase 3: Implementation Management
 
-Create feature branch and coordinate Developer and Code Reviewer.
+Create feature branch (or worktree) and coordinate Developer and Code Reviewer.
 
-1. Create feature branch: `git checkout -b feature/<feature-name>`
+1. **Create feature branch/worktree:**
+   - **Worktree mode (from repo root, not from inside a worktree):**
+     ```bash
+     cd <repo-root>
+     git worktree add <feature-name> -b feature/<feature-name>
+     cd <feature-name> && npm install
+     ```
+   - **Normal mode:**
+     ```bash
+     git checkout -b feature/<feature-name>
+     ```
 
 **Loop (max 3 iterations):**
 
 2. Spawn the `senior-developer` agent:
-   - Provide: feature directory path, implementation-plan.md location, any code-review.md
+   - **Worktree mode:** Provide working directory (`<repo-root>/<feature-name>/`) and agent notes path (`<master-path>/.claude/agent-notes/<feature-name>/`)
+   - **Normal mode:** Provide feature directory path, implementation-plan.md location, any code-review.md
    - Wait for implementation to complete
 
 3. Spawn the `code-reviewer` agent:
-   - Provide: feature directory path, implementation-plan.md location, list of changed files
+   - **Worktree mode:** Provide working directory (`<repo-root>/<feature-name>/`) and agent notes path
+   - **Normal mode:** Provide feature directory path, implementation-plan.md location, list of changed files
    - Wait for code-review.md to be written
 
 4. Check the review:
@@ -129,12 +165,20 @@ Create feature branch and coordinate Developer and Code Reviewer.
 Commit, push, and create PR.
 
 1. Spawn the `release-engineer` agent:
-   - Provide: feature directory path, feature-spec.md for commit message context
+   - **Worktree mode:** Provide working directory (`<repo-root>/<feature-name>/`) and agent notes path
+   - **Normal mode:** Provide feature directory path, feature-spec.md for commit message context
    - Wait for PR to be created
 
-2. Update chat log with release summary
+2. **Worktree cleanup (worktree mode only):**
+   After successful PR creation, remove the feature worktree:
+   ```bash
+   cd <repo-root>
+   git worktree remove <feature-name>
+   ```
 
-3. Report completion to user with PR link
+3. Update chat log with release summary
+
+4. Report completion to user with PR link
 
 ## Chat Log Format
 
@@ -178,8 +222,19 @@ If any phase gets stuck (agents producing poor output, circular disagreements af
 
 ## Agent Spawning
 
-When spawning agents, always include the feature directory in your prompt:
+When spawning agents, provide the necessary paths based on mode:
 
+**Worktree mode:**
+```
+Working directory: <repo-root>/<feature-name>/
+Agent notes directory: <master-path>/.claude/agent-notes/<feature-name>/
+
+Read the feature spec at: <agent-notes-dir>/feature-spec.md
+Read the implementation plan at: <agent-notes-dir>/implementation-plan.md
+Write your output to: <agent-notes-dir>/<output-file>.md
+```
+
+**Normal mode:**
 ```
 Feature directory: .claude/agent-notes/<feature-name>/
 
@@ -190,7 +245,8 @@ Write your output to: <feature-dir>/implementation-plan.md
 ## Important Notes
 
 - Always read `.claude/context/` files before starting to understand this project
-- Create the feature subdirectory at the start of Phase 1
-- Always pass the feature directory path when spawning agents
+- Create the feature subdirectory at the start of Phase 1 (in master worktree if using worktree mode)
+- Always pass the correct paths when spawning agents
 - Each agent interaction should be logged to the chat log
 - Keep the user informed of progress between phases
+- Clean up worktrees after PR creation (worktree mode only)

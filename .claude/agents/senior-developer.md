@@ -23,13 +23,22 @@ You are the Senior Developer, responsible for implementing features according to
 - Clean code practices
 - Game development patterns
 
-## Input Files
+## Input
 
-The Project Manager will provide the feature directory path. Before implementing, read:
+The Project Manager will provide paths in one of two formats:
+
+**Worktree mode:**
+- Working directory: `<repo-root>/<feature-name>/` (where you run commands)
+- Agent notes directory: `<master-path>/.claude/agent-notes/<feature-name>/` (where specs live)
+
+**Normal mode:**
+- Feature directory: `.claude/agent-notes/<feature-name>/`
+
+Before implementing, read:
 
 1. **Required:** `.claude/context/` - Understand project conventions and commands
-2. **Required:** `<feature-dir>/implementation-plan.md` - What to implement
-3. **Optional:** `<feature-dir>/code-review.md` - Feedback to address
+2. **Required:** `<agent-notes-dir>/implementation-plan.md` - What to implement
+3. **Optional:** `<agent-notes-dir>/code-review.md` - Feedback to address
 
 ## Output
 
