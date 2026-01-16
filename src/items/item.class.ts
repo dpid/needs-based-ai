@@ -9,6 +9,7 @@ import type {
 } from '../advertisements';
 import type { Item } from './item.interface';
 import type { ItemData } from './item-data.interface';
+import type { ItemDebugInfo } from '../debug';
 import {
   generateId,
   vector2Distance,
@@ -20,6 +21,7 @@ import { TraitCollectionImpl } from '../traits';
 import { NullMap } from '../maps';
 import { NullAdvertisementBroadcaster } from '../advertisements';
 import { NullItemData } from './null-item-data.class';
+import { Debug } from '../debug';
 
 export class ItemImpl implements Item {
   readonly id: number;
@@ -146,6 +148,25 @@ export class ItemImpl implements Item {
 
   handleTransition(transitionName: string): void {
     // Override in subclasses to handle state transitions
+  }
+
+  getDebugInfo(): ItemDebugInfo | null {
+    if (!Debug.isEnabled) {
+      return null;
+    }
+
+    const advertisements = this._data.stats.traits.map((trait) => ({
+      trait: trait.id,
+      radius: this._data.broadcastDistance,
+      quantity: trait.quantity,
+    }));
+
+    return {
+      type: 'item',
+      id: String(this.id),
+      position: { x: this._location.x, y: this._location.y },
+      advertisements,
+    };
   }
 
   static create(groupId: string = '', initialLocation?: Vector2): Item {

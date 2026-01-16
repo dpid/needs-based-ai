@@ -10,6 +10,7 @@ import type {
 } from '../advertisements';
 import type { Agent } from './agent.interface';
 import type { AgentData } from './agent-data.interface';
+import type { DecisionDebugInfo, AgentDebugInfo } from '../debug';
 import {
   generateId,
   vector2Distance,
@@ -21,6 +22,7 @@ import { TraitCollectionImpl } from '../traits';
 import { NullMap } from '../maps';
 import { NullAdvertisementBroadcaster } from '../advertisements';
 import { NullAgentData } from './null-agent-data.class';
+import { Debug } from '../debug';
 
 export class AgentImpl implements Agent {
   readonly id: number;
@@ -33,6 +35,8 @@ export class AgentImpl implements Agent {
   private _broadcaster: AdvertisementBroadcaster | null = null;
   readonly onLocationUpdated: EventEmitter<AgentImpl>;
   readonly onAdvertisementReceived: EventEmitter<Advertisement>;
+  private _receivedAdvertisements: Advertisement[] = [];
+  private _lastDecision: DecisionDebugInfo | null = null;
 
   targetAdvertisement: RankedAdvertisement | null = null;
   targetMapElement: MapElement | null = null;
@@ -157,10 +161,76 @@ export class AgentImpl implements Agent {
 
   receiveAdvertisement(advertisement: Advertisement): void {
     this.onAdvertisementReceived.emit(advertisement);
+
+    if (Debug.isEnabled) {
+      this._receivedAdvertisements.push(advertisement);
+      if (this._receivedAdvertisements.length > 50) {
+        this._receivedAdvertisements.shift();
+      }
+    }
+  }
+
+  get receivedAdvertisements(): readonly Advertisement[] {
+    return this._receivedAdvertisements;
+  }
+
+  set lastDecision(value: DecisionDebugInfo | null) {
+    this._lastDecision = value;
+  }
+
+  get lastDecision(): DecisionDebugInfo | null {
+    return this._lastDecision;
   }
 
   handleTransition(transitionName: string): void {
     // Override in subclasses to handle state transitions
+  }
+
+  getDebugInfo(): AgentDebugInfo | null {
+    if (!Debug.isEnabled) {
+      return null;
+    }
+
+    const advertisements = this._data.stats.traits.map((trait) => ({
+      trait: trait.id,
+      radius: this._data.broadcastDistance,
+      quantity: trait.quantity,
+    }));
+
+    const desires = this._data.desires.traits.map((trait) => ({
+      trait: trait.id,
+      priority: trait.quantity,
+    }));
+
+    const receivedAdvertisements = this._receivedAdvertisements.map((ad) => {
+      const firstTrait = ad.traits[0];
+      return {
+        sourceId: `${ad.location.x},${ad.location.y}`,
+        sourceType: (ad.groupId === this._groupId ? 'agent' : 'item') as 'agent' | 'item',
+        trait: firstTrait?.id || 'unknown',
+        quantity: firstTrait?.quantity || 0,
+        position: { x: ad.location.x, y: ad.location.y },
+        distance: vector2Distance(this._location, ad.location),
+      };
+    });
+
+    const currentTarget = this.targetLocation
+      ? {
+          position: { x: this.targetLocation.x, y: this.targetLocation.y },
+          trait: this.targetAdvertisement?.traits[0]?.id || 'unknown',
+        }
+      : null;
+
+    return {
+      type: 'agent',
+      id: String(this.id),
+      position: { x: this._location.x, y: this._location.y },
+      advertisements,
+      desires,
+      receivedAdvertisements,
+      currentTarget,
+      lastDecision: this._lastDecision,
+    };
   }
 
   static create(groupId: string = '', initialLocation?: Vector2): Agent {
