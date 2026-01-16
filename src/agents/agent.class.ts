@@ -24,6 +24,8 @@ import { NullAdvertisementBroadcaster } from '../advertisements';
 import { NullAgentData } from './null-agent-data.class';
 import { Debug } from '../debug';
 
+const MAX_DEBUG_ADVERTISEMENTS = 50;
+
 export class AgentImpl implements Agent {
   readonly id: number;
   private _location: Vector2;
@@ -164,7 +166,7 @@ export class AgentImpl implements Agent {
 
     if (Debug.isEnabled) {
       this._receivedAdvertisements.push(advertisement);
-      if (this._receivedAdvertisements.length > 50) {
+      if (this._receivedAdvertisements.length > MAX_DEBUG_ADVERTISEMENTS) {
         this._receivedAdvertisements.shift();
       }
     }
