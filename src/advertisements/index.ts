@@ -19,3 +19,5 @@ export type {
   AdvertisingMapElement,
   AdvertisingData,
 } from './advertising-map-element.interface';
+
+export * from './ranking';

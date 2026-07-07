@@ -1,8 +1,7 @@
 import { AbstractCommand } from '@dpid/command-state-machine';
 import type { AgentType as Agent } from '../agents';
 import type { AdvertisementType as Advertisement } from '../advertisements';
-import { RankedAdvertisement } from '../advertisements';
-import { vector2Distance } from '../common';
+import { RankedAdvertisement, calculateDefaultRank } from '../advertisements';
 import { Debug } from '../debug';
 
 export class AdvertisementHandler extends AbstractCommand {
@@ -86,24 +85,7 @@ export class AdvertisementHandler extends AbstractCommand {
       return this.customRankingFunction(advertisement, this.agent);
     }
 
-    if (advertisement.groupId === this.agent.groupId) {
-      return 0;
-    }
-
-    let rank = 0;
-    for (const adTrait of advertisement.traits) {
-      const desire = this.agent.data.desires.getTrait(adTrait.id);
-      if (desire) {
-        rank += adTrait.quantity * desire.quantity;
-      }
-    }
-
-    if (this.distanceWeight > 0 && this.agent.location) {
-      const distance = vector2Distance(this.agent.location, advertisement.location);
-      rank = rank * (1 / (1 + distance * this.distanceWeight));
-    }
-
-    return rank;
+    return calculateDefaultRank(advertisement, this.agent, this.distanceWeight);
   }
 
   private isRankGreaterThanCurrentTarget(rank: number): boolean {
