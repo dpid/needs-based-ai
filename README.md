@@ -164,6 +164,21 @@ agent.onAdvertisementReceived.addListener((ad) => {
 });
 ```
 
+## Custom Ranking
+
+`AdvertisementHandler` scores advertisements with `calculateDefaultRank`: a self-group filter, then Σ(ad trait × agent desire), then distance falloff when `distanceWeight > 0`. The function is exported so custom ranking functions can compose with the default scoring instead of reimplementing it:
+
+```typescript
+import { AdvertisementHandler, calculateDefaultRank } from '@dpid/needs-based-ai';
+
+const customRanking = (ad: Advertisement, agent: Agent) =>
+  calculateDefaultRank(ad, agent, 0.5) * myModifier(ad);
+
+const handler = AdvertisementHandler.create(agent, 'foundTarget', 0.5, customRanking);
+```
+
+This is the integration seam used by layers like `@dpid/prefrontal-ai` to bias, suppress, or boost scores while preserving vanilla behavior as the baseline.
+
 ## Integration with command-state-machine
 
 Both `Item` and `Agent` implement `StateTransitionHandler` from `@dpid/command-state-machine`:
